@@ -1,0 +1,50 @@
+version: "3"
+
+networks:
+  loki:
+
+services:
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - 80:80
+    networks:
+      - loki
+    volumes:
+      - "${PWD}/nginx/nginx.conf:/etc/nginx/nginx.conf"
+      - /var/log/nginx/:/var/log/nginx/
+
+  net-application:
+    hostname: net-application
+    image: stenote/nginx-hostname
+    restart: always
+    networks:
+      - loki
+
+  loki:
+    image: grafana/loki:2.7.4
+    ports:
+      - "3100:3100"
+    volumes:
+      - "${PWD}:/etc/loki/"
+    command: -config.file=/etc/loki/loki-config.yaml
+    networks:
+      - loki
+
+  promtail:
+    image: grafana/promtail:2.7.4
+    volumes:
+      - "${PWD}/promtail/logs/:/var/log/"
+      - /var/log/nginx/:/var/log/nginx/
+      - "${PWD}/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml"
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    networks:
+      - loki
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    networks:
+      - loki
